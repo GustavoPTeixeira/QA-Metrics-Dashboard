@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: qa-metrics-backend
+Version: 0.1.0
+Summary:  
+Requires-Python: >=3.11
+Requires-Dist: fastapi
+Requires-Dist: sqlalchemy
+Requires-Dist: alembic
+Requires-Dist: duckdb
+Requires-Dist: pydantic
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"

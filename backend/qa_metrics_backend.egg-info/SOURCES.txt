@@ -1,0 +1,7 @@
+pyproject.toml
+app/__init__.py
+qa_metrics_backend.egg-info/PKG-INFO
+qa_metrics_backend.egg-info/SOURCES.txt
+qa_metrics_backend.egg-info/dependency_links.txt
+qa_metrics_backend.egg-info/requires.txt
+qa_metrics_backend.egg-info/top_level.txt
