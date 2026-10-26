@@ -23,7 +23,7 @@ A plataforma responde a 5 perguntas críticas:
 - [x] Configuração de suite de testes com `pytest`
 
 ### Fase 1a: Core de Domínio & Modelo de Dados
-- [x] Enums de Domínio (`Severity` com cálculo de peso de risco, `IssueStatus`, `FoundIn`)
+- [x] Enums de Domínio (`Severity` com cálculo de peso de risco, `IssueStatus`, `FoundIn`, `TestStatus`)
 - [x] Modelos de Gestão de Defeitos em SQLAlchemy:
   - [x] `Module` (Taxonomia e Squads proprietárias)
   - [x] `Issue` (Defeitos normalizados)
@@ -37,8 +37,12 @@ A plataforma responde a 5 perguntas críticas:
   - [x] `ScenarioAlias` (Rastreabilidade de testes renomeados)
 - [x] Migrações com Alembic & Enforçamento de UTC
 
-### Fase 1b: Gerador de Dados Sintéticos
-- [ ] CLI para gerar dados simulados reprodutíveis (60 e 120 dias) com métricas conhecidas ("golden dataset").
+### Fase 1b: Gerador de Dados Sintéticos (Golden Dataset)
+- [x] CLI para gerar dados simulados reprodutíveis (60 e 120 dias) com métricas conhecidas:
+  - [x] Contrato determinístico com expectativas matemáticas imutáveis (`golden_dataset.py`)
+  - [x] Gerador de módulos, defeitos, transições de status e telemetria de testes (`generator.py`)
+  - [x] Comando executável via terminal (`python -m app.seeds.cli`)
+  - [x] Testes unitários do gerador contra o gabarito com 100% de sucesso (`test_seeds.py`)
 
 ### Fase 2: Motor de Métricas & Lógica de Negócio (TDD)
 - [ ] Cálculo de MTTR (Primeira Resolução vs Lead Time Total) e Idade de Defeitos Abertos (P50/P90)
@@ -106,6 +110,9 @@ pip install -e ".[dev]"
 # 4. Executar as migrações do banco de dados (Alembic)
 alembic upgrade head
 
-# 5. Rodar a suíte de testes (25 testes)
+# 5. Popular o banco com dados do Golden Dataset
+python -m app.seeds.cli
+
+# 6. Rodar a suíte de testes (26 testes)
 pytest -v
 ```
