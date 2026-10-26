@@ -29,12 +29,12 @@ A plataforma responde a 5 perguntas críticas:
   - [x] `Issue` (Defeitos normalizados)
   - [x] `IssueTransition` (Auditoria e fonte da verdade para MTTR e reaberturas)
 - [x] Testes unitários e de integração (Roundtrip & constraints de unicidade)
-- [ ] Enums e Modelos de Telemetria de Testes:
-  - [ ] `TestStatus`
-  - [ ] `TestRun` (Execuções agregadas com garantia de idempotência)
-  - [ ] `TestCase` (Cenários individuais com hash SHA-256 determinístico)
-  - [ ] `TestAttempt` (Tentativas e retries de testes)
-  - [ ] `ScenarioAlias` (Rastreabilidade de testes renomeados)
+- [x] Enums e Modelos de Telemetria de Testes:
+  - [x] `TestStatus`
+  - [x] `TestRun` (Execuções agregadas com garantia de idempotência)
+  - [x] `TestCase` (Cenários individuais com hash SHA-256 determinístico)
+  - [x] `TestAttempt` (Tentativas e retries de testes)
+  - [x] `ScenarioAlias` (Rastreabilidade de testes renomeados)
 - [ ] Migrações com Alembic & Enforçamento de UTC
 
 ### Fase 1b: Gerador de Dados Sintéticos

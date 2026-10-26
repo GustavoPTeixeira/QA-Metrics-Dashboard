@@ -1,5 +1,5 @@
 import pytest
-from app.domain.enums import Severity, IssueStatus, FoundIn
+from app.domain.enums import Severity, IssueStatus, FoundIn, TestStatus
 
 def test_value_lookup():
     assert Severity("High") is Severity.HIGH
@@ -49,3 +49,14 @@ def test_found_in_codes(found_in, expected):
 )
 def test_severity_weight(severity, expected):
     assert severity.weight == expected
+
+@pytest.mark.parametrize(
+    "status, expected",
+    [
+        (TestStatus.PASSED, "passed"),
+        (TestStatus.FAILED, "failed"),
+        (TestStatus.SKIPPED, "skipped"),
+    ],
+)
+def test_test_status_values(status, expected):
+    assert status.value == expected
