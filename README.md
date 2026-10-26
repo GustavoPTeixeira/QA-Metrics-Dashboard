@@ -35,7 +35,7 @@ A plataforma responde a 5 perguntas críticas:
   - [x] `TestCase` (Cenários individuais com hash SHA-256 determinístico)
   - [x] `TestAttempt` (Tentativas e retries de testes)
   - [x] `ScenarioAlias` (Rastreabilidade de testes renomeados)
-- [ ] Migrações com Alembic & Enforçamento de UTC
+- [x] Migrações com Alembic & Enforçamento de UTC
 
 ### Fase 1b: Gerador de Dados Sintéticos
 - [ ] CLI para gerar dados simulados reprodutíveis (60 e 120 dias) com métricas conhecidas ("golden dataset").
@@ -103,6 +103,9 @@ python -m venv .venv
 # 3. Instalar dependências em modo editável
 pip install -e ".[dev]"
 
-# 4. Rodar a suíte de testes
+# 4. Executar as migrações do banco de dados (Alembic)
+alembic upgrade head
+
+# 5. Rodar a suíte de testes (25 testes)
 pytest -v
 ```
