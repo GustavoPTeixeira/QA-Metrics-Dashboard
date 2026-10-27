@@ -1,10 +1,10 @@
 # QA Metrics Dashboard
 
 > **Strategic Engineering Quality Governance Platform for Historical Defect Tracking & Test Telemetry**  
-> *Specification Ref: QA-GOV-2026-v1.0*
+> *Specification Ref: QA-GOV-2026-v1.0 • Release: v1.0.0*
 
 ## 🎯 Visão Geral
-O **QA Metrics Dashboard** é uma plataforma de governança de qualidade open-source projetada para transformar dados brutos de bug trackers (Jira, GitHub Issues) e de execuções de testes em CI/CD (JUnit, Allure, Playwright) em insights acionáveis para liderança técnica (VPs, Diretores, Quality Leads).
+O **QA Metrics Dashboard** é uma plataforma de governança de qualidade open-source projetada para transformar dados brutos de bug trackers (**Jira Cloud**, **GitHub Issues**, **Azure DevOps Boards**) e de execuções de testes em CI/CD (JUnit, Allure, Playwright, Pytest) em insights acionáveis para liderança técnica (VPs, Diretores, Quality Leads).
 
 A plataforma responde a 5 perguntas críticas:
 1. **MTTR & Idade de Defeitos:** Com que rapidez triamos e corrigimos bugs por severidade?
@@ -15,10 +15,10 @@ A plataforma responde a 5 perguntas críticas:
 
 ---
 
-## 🗺️ Roadmap de Entrega e Progresso
+## 🗺️ Roadmap de Entrega e Progresso (v1.0.0 Completo)
 
 ### Fase 0: Estrutura Base & Tooling
-- [x] Criação da estrutura do repositório (`backend/`, `docs/`)
+- [x] Criação da estrutura do repositório (`backend/`, `frontend/`, `docs/`)
 - [x] Configuração de ambiente virtual (`.venv`) e empacotamento (`pyproject.toml`)
 - [x] Configuração de suite de testes com `pytest`
 
@@ -59,6 +59,7 @@ A plataforma responde a 5 perguntas críticas:
   - [x] `GET /api/metrics/kpis` (Linha executiva com MTTR, Reopen, Pass Rate, Flakiness, Escape Rate)
   - [x] `GET /api/metrics/heatmap` (Matriz Módulo x Severidade)
   - [x] `GET /api/metrics/quarantine` (Candidatos ao Hall of Shame de testes instáveis)
+  - [x] `GET /api/metrics/issues` (Stream unificado de tickets e boards)
 - [x] Endpoints de Ingestão de Telemetria com Idempotência Estrita:
   - [x] `POST /api/ingest/test-run` (Ingestão de relatórios de testes de CI/CD, detecção automática de flakiness e retries)
   - [x] `POST /api/ingest/issue` (Ingestão de bugs e tracking de transições de status)
@@ -72,20 +73,21 @@ A plataforma responde a 5 perguntas críticas:
 - [x] Linha de 6 KPIs Executivos (`KpiGrid.tsx` e `KpiCard.tsx`) com tamanho de amostra `(n)` e avaliação de SLA
 - [x] Heatmap de Risco (`RiskHeatmap.tsx`): Matriz colorimétrica Severidade × Módulo
 - [x] Tabela interativa de Quarentena ("Hall of Shame" em `QuarantineTable.tsx`) com isolamento em 1 clique
+- [x] Explorador de Boards e Conector Interativo (`BoardExplorer.tsx`) para Jira Cloud, GitHub Issues e Azure DevOps
 - [x] Filtro temporal dinâmico no cabeçalho (`Header.tsx` com janelas de 30, 60, 90 e 120 dias)
 
 ### Fase 5: Integrações Reais & Alertas
-- [x] Conectores e Adapters para Webhooks nativos do **GitHub Issues** e **Jira** (`app/integrations/connectors.py`)
+- [x] Conectores e Adapters para Webhooks e APIs do **Jira Cloud**, **GitHub Issues** e **Azure DevOps Boards** (`app/integrations/connectors.py`)
+- [x] Sincronização ativa de Boards (`POST /api/webhooks/sync/jira`, `POST /api/webhooks/sync/github`, `POST /api/webhooks/sync/azure-devops`)
 - [x] Motor de Notificações e Alertas em formato **Slack Block Kit** (`app/integrations/alerts.py`):
   - [x] Alertas instantâneos de incidentes P1 (`PRODUCTION_CRITICAL_DEFECT`)
   - [x] Alertas de governança para violações de SLA (`SLA_BREACH`) e quarentena de testes instáveis (`FLAKY_QUARANTINE`)
-- [x] Endpoints de integração (`POST /api/webhooks/github`, `POST /api/webhooks/jira`, `POST /api/webhooks/alerts/evaluate`)
-- [x] Suite de testes de integração (`test_integrations.py` — 45 testes totais passando)
+- [x] Suite completa de testes de integração (`test_integrations.py` — 46 testes totais passando)
 
-### Fase 6: Prontidão Open-Source
-- [ ] Licenciamento (MIT/Apache 2.0)
-- [ ] `CONTRIBUTING.md` e guia de arquitetura
-- [ ] `docker-compose.yml` para execução rápida com 1 comando
+### Fase 6: Prontidão Open-Source & Containers
+- [x] Licenciamento Open-Source (`LICENSE` — MIT)
+- [x] Guia de contribuição e arquitetura (`Contributing.md`)
+- [x] Containerização completa (`backend/Dockerfile`, `frontend/Dockerfile` e `docker-compose.yml` para execução com 1 comando)
 
 ---
 
@@ -99,10 +101,15 @@ A API do backend fornece contratos tipados e documentados automaticamente pelo S
 | `GET` | `/api/metrics/kpis` | Métricas executivas com janela configurável (`?window_days=60`) | Pública |
 | `GET` | `/api/metrics/heatmap` | Matriz de densidade de defeitos (Módulo x Severidade) | Pública |
 | `GET` | `/api/metrics/quarantine` | Testes instáveis recomendados para quarentena (Hall of Shame) | Pública |
+| `GET` | `/api/metrics/issues` | Lista unificada de tickets (Jira, GitHub, Azure DevOps) | Pública |
 | `POST` | `/api/ingest/test-run` | Ingestão idempotente de relatórios de testes de CI/CD | `X-API-Key` |
 | `POST` | `/api/ingest/issue` | Ingestão ou atualização de defeitos (contrato canônico) | `X-API-Key` |
 | `POST` | `/api/webhooks/github` | Webhook nativo do GitHub Issues com alerta P1 automático | `X-API-Key` |
 | `POST` | `/api/webhooks/jira` | Webhook nativo do Jira com mapeamento de prioridade/status | `X-API-Key` |
+| `POST` | `/api/webhooks/azure-devops` | Webhook nativo do Azure DevOps Boards (Service Hooks) | `X-API-Key` |
+| `POST` | `/api/webhooks/sync/jira` | Importação e sincronização direta de Boards do Jira Cloud via REST API | `X-API-Key` |
+| `POST` | `/api/webhooks/sync/github` | Importação e sincronização direta de Issues de repositórios GitHub | `X-API-Key` |
+| `POST` | `/api/webhooks/sync/azure-devops` | Importação e sincronização direta de Work Items do Azure DevOps | `X-API-Key` |
 | `POST` | `/api/webhooks/alerts/evaluate` | Avalia violações de SLA e quarentena e dispara alertas Slack | `X-API-Key` |
 
 Documentação interativa disponível localmente em: `http://localhost:8000/docs`
@@ -116,50 +123,51 @@ Documentação interativa disponível localmente em: `http://localhost:8000/docs
 | **Backend** | Python 3.14+, FastAPI, SQLAlchemy 2.0, Pydantic v2 | API de ingestão de alta performance e tipagem forte |
 | **Banco de Dados** | SQLite (Dev/Testes), DuckDB / PostgreSQL (Prod/Analytics) | Suporte a queries OLAP rápidas e persistência confiável |
 | **Frontend** | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, Lucide | Dashboard analítico executivo |
-| **Integrações** | GitHub Webhooks, Jira Webhooks, Slack Block Kit | Automação de governança e resposta a incidentes |
-| **Testes** | Pytest, TestClient | Test-Driven Development (TDD) com Golden Dataset (45 testes) |
+| **Integrações** | Jira Cloud REST API, GitHub API, Azure DevOps WIQL, Slack Block Kit | Automação de governança e resposta a incidentes |
+| **Infra & Testes** | Docker Compose, Pytest, TestClient | TDD com Golden Dataset (46 testes) e deploy reproduzível |
 
 ---
 
-## 🚀 Como Executar Localmente
+## 🚀 Como Executar
 
-### Pré-requisitos
-- Python 3.11+ instalado
-- Node.js 20+ e npm instalados
-- Git
-
-### 1. Configuração e Execução do Backend (Terminal 1)
+### Opção 1: Execução Rápida com Docker Compose (1 Comando)
 ```powershell
-# 1. Acessar a pasta do backend
-cd backend
+docker compose up --build
+```
+- **Dashboard UI:** `http://localhost:3000`
+- **API & Swagger Docs:** `http://localhost:8000/docs`
 
-# 2. Criar e ativar o ambiente virtual
+---
+
+### Opção 2: Execução Local para Desenvolvimento
+
+#### 1. Backend (Terminal 1)
+```powershell
+cd backend
 python -m venv .venv
 .venv\Scripts\Activate.ps1
-
-# 3. Instalar dependências em modo editável
 pip install -e ".[dev]"
 
-# 4. Popular o banco com dados do Golden Dataset
+# Popular o banco com o Golden Dataset
 python -m app.seeds.cli
 
-# 5. Rodar a suíte completa de testes (45 testes)
+# Rodar a suíte completa de testes (46 testes)
 pytest -v
 
-# 6. Iniciar o servidor da API na porta 8000
+# Iniciar o servidor da API na porta 8000
 uvicorn app.main:app --reload --port 8000
 ```
 
-### 2. Configuração e Execução do Frontend (Terminal 2)
+#### 2. Frontend (Terminal 2)
 ```powershell
-# 1. Acessar a pasta do frontend
 cd frontend
-
-# 2. Instalar dependências
 npm install
-
-# 3. Iniciar o servidor de desenvolvimento na porta 3000
 npm run dev
 ```
 
 Acesse o dashboard em: `http://localhost:3000`
+
+---
+
+## 📄 Licença
+Distribuído sob a licença **MIT**. Veja [`LICENSE`](LICENSE) para mais informações.

@@ -144,3 +144,35 @@ def test_evaluate_governance_alerts_on_golden_dataset(integration_client):
     for alert in data["alerts"]:
         assert "blocks" in alert["slack_payload"]
         assert alert["channel"].startswith("#")
+
+def test_azure_devops_webhook_and_issues_board_list(integration_client):
+    ado_payload = {
+        "eventType": "workitem.created",
+        "resource": {
+            "id": 904,
+            "fields": {
+                "System.Title": "Timeout on Azure SQL connection pool",
+                "System.State": "Active",
+                "Microsoft.VSTS.Common.Severity": "1 - Critical",
+                "System.AreaPath": "Platform\\Auth",
+                "System.Tags": "production; security",
+                "System.CreatedBy": {"displayName": "Carlos SRE"},
+            },
+        },
+    }
+
+    res = integration_client.post(
+        "/api/webhooks/azure-devops", json=ado_payload, headers=API_HEADERS
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["external_key"] == "ADO-904"
+    assert data["status"] == "created"
+
+    board_res = integration_client.get("/api/metrics/issues")
+    assert board_res.status_code == 200
+    items = board_res.json()
+    assert len(items) == 1
+    assert items[0]["external_key"] == "ADO-904"
+    assert items[0]["provider"] == "Azure DevOps"
+    assert items[0]["module_name"] == "Auth"

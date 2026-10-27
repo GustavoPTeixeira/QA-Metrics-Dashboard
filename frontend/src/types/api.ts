@@ -55,3 +55,15 @@ export interface QuarantineCandidate {
   flakiness_pct: number;
   recommendation: string;
 }
+
+export interface BoardTicket {
+  id: string;
+  external_key: string;
+  title: string;
+  severity: string;
+  status: string;
+  found_in: string;
+  module_name: string;
+  provider: "Jira" | "GitHub" | "Azure DevOps";
+  created_at: string;
+}

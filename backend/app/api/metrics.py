@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
+from app.db.models import Issue, Module
 from app.domain.enums import Severity
 from app.metrics.defects import (
     calculate_escape_rate,
@@ -24,7 +25,6 @@ def get_dashboard_kpis(
     window_days: int = Query(60, description="Janela de análise histórica em dias"),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
-    """Retorna a Linha de KPIs Executivos com tamanhos de amostra (n) e metas."""
     reopen = calculate_reopen_rate(db, window_days=window_days)
     mttr = calculate_mttr_and_sla(db, window_days=window_days)
     test_rates = calculate_test_pass_and_flaky_rates(db, window_days=window_days)
@@ -73,7 +73,6 @@ def get_dashboard_heatmap(
     window_days: int = Query(60, description="Janela de análise histórica em dias"),
     db: Session = Depends(get_db),
 ):
-    """Retorna a matriz Módulo x Severidade para renderização do Heatmap."""
     heatmap = calculate_severity_module_heatmap(db, window_days=window_days)
     return {
         "modules": heatmap.modules,
@@ -89,7 +88,6 @@ def get_dashboard_quarantine(
     min_runs: int = Query(10, description="Mínimo de execuções para recomendação"),
     db: Session = Depends(get_db),
 ):
-    """Retorna os testes instáveis recomendados para quarentena (Hall of Shame)."""
     recommendations = get_quarantine_recommendations(
         db,
         window_days=window_days,
@@ -108,3 +106,41 @@ def get_dashboard_quarantine(
         }
         for r in recommendations
     ]
+
+
+@router.get("/issues")
+def get_dashboard_issues(
+    limit: int = Query(25, ge=1, le=100),
+    db: Session = Depends(get_db),
+) -> list[dict[str, Any]]:
+    rows = (
+        db.query(Issue, Module.name)
+        .join(Module, Issue.module_id == Module.id)
+        .order_by(Issue.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    result = []
+    for issue, module_name in rows:
+        if issue.external_key.startswith("GH-"):
+            provider = "GitHub"
+        elif issue.external_key.startswith("ADO-"):
+            provider = "Azure DevOps"
+        else:
+            provider = "Jira"
+
+        result.append(
+            {
+                "id": issue.id,
+                "external_key": issue.external_key,
+                "title": issue.title,
+                "severity": issue.severity.value,
+                "status": issue.status.value,
+                "found_in": issue.found_in.value,
+                "module_name": module_name,
+                "provider": provider,
+                "created_at": issue.created_at.isoformat(),
+            }
+        )
+    return result
