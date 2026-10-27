@@ -1,6 +1,6 @@
 import os
 from typing import Any
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
@@ -22,8 +22,9 @@ router = APIRouter(prefix="/ingest", tags=["Ingestion"])
 API_KEY_ENV = os.getenv("INGEST_API_KEY", "qa-secret-token")
 
 
-def verify_api_key(x_api_key: str = Header(..., description="API Key de autenticação da ingestão")) -> str:
-    """Valida o header X-API-Key contra o token configurado."""
+def verify_api_key(
+    x_api_key: str = Header(..., description="API Key de autenticação da ingestão")
+) -> str:
     if x_api_key != API_KEY_ENV:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -35,11 +36,10 @@ def verify_api_key(x_api_key: str = Header(..., description="API Key de autentic
 @router.post("/test-run", status_code=status.HTTP_201_CREATED)
 def ingest_test_run(
     payload: TestRunIngestPayload,
+    response: Response,
     db: Session = Depends(get_db),
     _: str = Depends(verify_api_key),
 ) -> dict[str, Any]:
-    """Ingesta um relatório de execução de testes de CI com garantia estrita de idempotência."""
-    # 1. Checagem de idempotência: (suite_name, git_commit_sha, executed_at)
     existing_run = (
         db.query(TestRun)
         .filter(
@@ -51,16 +51,22 @@ def ingest_test_run(
     )
 
     if existing_run:
+        response.status_code = status.HTTP_200_OK
         return {
             "status": "already_ingested",
             "test_run_id": existing_run.id,
             "message": "Test run execution already processed.",
         }
 
-    # 2. Contadores e métricas agregadas da execução
-    passed_count = sum(1 for tc in payload.test_cases if tc.status == TestStatus.PASSED)
-    failed_count = sum(1 for tc in payload.test_cases if tc.status == TestStatus.FAILED)
-    skipped_count = sum(1 for tc in payload.test_cases if tc.status == TestStatus.SKIPPED)
+    passed_count = sum(
+        1 for tc in payload.test_cases if tc.status == TestStatus.PASSED
+    )
+    failed_count = sum(
+        1 for tc in payload.test_cases if tc.status == TestStatus.FAILED
+    )
+    skipped_count = sum(
+        1 for tc in payload.test_cases if tc.status == TestStatus.SKIPPED
+    )
     total_duration_ms = sum(tc.duration_ms for tc in payload.test_cases)
 
     test_run = TestRun(
@@ -77,10 +83,10 @@ def ingest_test_run(
     db.add(test_run)
     db.flush()
 
-    # Cache de módulos para evitar múltiplos SELECTs
-    modules_cache: dict[str, Module] = {m.name: m for m in db.query(Module).all()}
+    modules_cache: dict[str, Module] = {
+        m.name: m for m in db.query(Module).all()
+    }
 
-    # 3. Processamento dos TestCases e TestAttempts
     for tc in payload.test_cases:
         module = modules_cache.get(tc.module_name)
         if not module:
@@ -96,8 +102,9 @@ def ingest_test_run(
         )
 
         retry_count = max(0, len(tc.attempts) - 1)
-        # Detecção de Flakiness: passou após falha ou teve retries com sucesso
-        has_failed_attempt = any(a.status == TestStatus.FAILED for a in tc.attempts)
+        has_failed_attempt = any(
+            a.status == TestStatus.FAILED for a in tc.attempts
+        )
         is_flaky = (tc.status == TestStatus.PASSED and has_failed_attempt) or (
             tc.status == TestStatus.PASSED and retry_count > 0
         )
@@ -139,17 +146,23 @@ def ingest_test_run(
 @router.post("/issue", status_code=status.HTTP_201_CREATED)
 def ingest_issue(
     payload: IssueIngestPayload,
+    response: Response = Response(),
     db: Session = Depends(get_db),
     _: str = Depends(verify_api_key),
 ) -> dict[str, Any]:
-    """Ingesta ou atualiza um defeito/issue de forma idempotente com histórico de transição."""
-    module = db.query(Module).filter(Module.name == payload.module_name).first()
+    module = (
+        db.query(Module).filter(Module.name == payload.module_name).first()
+    )
     if not module:
         module = Module(name=payload.module_name, owner_team="Core Squad")
         db.add(module)
         db.flush()
 
-    issue = db.query(Issue).filter(Issue.external_key == payload.external_key).first()
+    issue = (
+        db.query(Issue)
+        .filter(Issue.external_key == payload.external_key)
+        .first()
+    )
 
     now = utcnow()
     if issue:
@@ -177,9 +190,9 @@ def ingest_issue(
             db.add(transition)
 
         db.commit()
+        response.status_code = status.HTTP_200_OK
         return {"status": "updated", "issue_id": issue.id}
 
-    # Nova issue
     issue = Issue(
         external_key=payload.external_key,
         title=payload.title,
@@ -196,7 +209,6 @@ def ingest_issue(
     db.add(issue)
     db.flush()
 
-    # Transição inicial
     transition = IssueTransition(
         issue_id=issue.id,
         from_status=None,
@@ -208,4 +220,3 @@ def ingest_issue(
     db.commit()
 
     return {"status": "created", "issue_id": issue.id}
-

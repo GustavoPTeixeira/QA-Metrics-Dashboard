@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.metrics import router as metrics_router
 from app.api.ingest import router as ingest_router
+from app.api.webhooks import router as webhooks_router
 
 app = FastAPI(
     title="QA Metrics Dashboard API",
@@ -21,6 +22,7 @@ app.add_middleware(
 # Registra os endpoints com prefixo /api
 app.include_router(metrics_router, prefix="/api")
 app.include_router(ingest_router, prefix="/api")
+app.include_router(webhooks_router, prefix="/api")
 
 
 @app.get("/health")

@@ -75,8 +75,12 @@ A plataforma responde a 5 perguntas críticas:
 - [x] Filtro temporal dinâmico no cabeçalho (`Header.tsx` com janelas de 30, 60, 90 e 120 dias)
 
 ### Fase 5: Integrações Reais & Alertas
-- [ ] Conectores para Jira e GitHub Issues
-- [ ] Notificações e alertas de SLA para Slack e Email
+- [x] Conectores e Adapters para Webhooks nativos do **GitHub Issues** e **Jira** (`app/integrations/connectors.py`)
+- [x] Motor de Notificações e Alertas em formato **Slack Block Kit** (`app/integrations/alerts.py`):
+  - [x] Alertas instantâneos de incidentes P1 (`PRODUCTION_CRITICAL_DEFECT`)
+  - [x] Alertas de governança para violações de SLA (`SLA_BREACH`) e quarentena de testes instáveis (`FLAKY_QUARANTINE`)
+- [x] Endpoints de integração (`POST /api/webhooks/github`, `POST /api/webhooks/jira`, `POST /api/webhooks/alerts/evaluate`)
+- [x] Suite de testes de integração (`test_integrations.py` — 45 testes totais passando)
 
 ### Fase 6: Prontidão Open-Source
 - [ ] Licenciamento (MIT/Apache 2.0)
@@ -96,7 +100,10 @@ A API do backend fornece contratos tipados e documentados automaticamente pelo S
 | `GET` | `/api/metrics/heatmap` | Matriz de densidade de defeitos (Módulo x Severidade) | Pública |
 | `GET` | `/api/metrics/quarantine` | Testes instáveis recomendados para quarentena (Hall of Shame) | Pública |
 | `POST` | `/api/ingest/test-run` | Ingestão idempotente de relatórios de testes de CI/CD | `X-API-Key` |
-| `POST` | `/api/ingest/issue` | Ingestão ou atualização de defeitos (webhooks de bug trackers) | `X-API-Key` |
+| `POST` | `/api/ingest/issue` | Ingestão ou atualização de defeitos (contrato canônico) | `X-API-Key` |
+| `POST` | `/api/webhooks/github` | Webhook nativo do GitHub Issues com alerta P1 automático | `X-API-Key` |
+| `POST` | `/api/webhooks/jira` | Webhook nativo do Jira com mapeamento de prioridade/status | `X-API-Key` |
+| `POST` | `/api/webhooks/alerts/evaluate` | Avalia violações de SLA e quarentena e dispara alertas Slack | `X-API-Key` |
 
 Documentação interativa disponível localmente em: `http://localhost:8000/docs`
 
@@ -109,7 +116,8 @@ Documentação interativa disponível localmente em: `http://localhost:8000/docs
 | **Backend** | Python 3.14+, FastAPI, SQLAlchemy 2.0, Pydantic v2 | API de ingestão de alta performance e tipagem forte |
 | **Banco de Dados** | SQLite (Dev/Testes), DuckDB / PostgreSQL (Prod/Analytics) | Suporte a queries OLAP rápidas e persistência confiável |
 | **Frontend** | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, Lucide | Dashboard analítico executivo |
-| **Testes** | Pytest, TestClient | Test-Driven Development (TDD) com Golden Dataset |
+| **Integrações** | GitHub Webhooks, Jira Webhooks, Slack Block Kit | Automação de governança e resposta a incidentes |
+| **Testes** | Pytest, TestClient | Test-Driven Development (TDD) com Golden Dataset (45 testes) |
 
 ---
 
@@ -135,7 +143,7 @@ pip install -e ".[dev]"
 # 4. Popular o banco com dados do Golden Dataset
 python -m app.seeds.cli
 
-# 5. Rodar a suíte completa de testes
+# 5. Rodar a suíte completa de testes (45 testes)
 pytest -v
 
 # 6. Iniciar o servidor da API na porta 8000
