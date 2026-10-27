@@ -49,13 +49,14 @@ A plataforma responde a 5 perguntas críticas:
 - [x] Idade de Defeitos em Aberto (P50/P90) com enforçamento de UTC
 - [x] Reopen Rate baseado em coortes (`IssueTransition`) com denominação preservada
 - [x] Escape Rate (Defeitos encontrados em produção)
-- [ ] Taxa de Passagem de Testes (First Attempt vs Final Pass)
-- [ ] Flakiness Index e Regra de Quarentena de Testes ("Hall of Shame")
-- [ ] Defect Risk Score & Densidade de Defeitos por Módulo
-- [ ] 100% de cobertura de testes unitários nas métricas
+- [x] Taxa de Passagem de Testes (First Attempt vs Final Pass)
+- [x] Flakiness Index e Regra de Quarentena de Testes ("Hall of Shame")
+- [x] Defect Risk Score & Densidade de Defeitos por Módulo (com Matriz Heatmap)
+- [x] 100% de cobertura de testes unitários nas métricas (34 testes passando)
 
 ### Fase 3: API de Ingestão & Segurança
 - [ ] Endpoints FastAPI para ingestão de webhooks e relatórios de CI
+- [ ] Endpoints de consumo analítico para o Frontend (`/api/metrics/kpis`, `/api/metrics/heatmap`, `/api/metrics/quarantine`)
 - [ ] Chaves de Idempotência contra envios duplicados
 - [ ] Autenticação e RBAC (Viewer, Squad Lead, Admin)
 
@@ -114,6 +115,6 @@ alembic upgrade head
 # 5. Popular o banco com dados do Golden Dataset
 python -m app.seeds.cli
 
-# 6. Rodar a suíte de testes (30 testes)
+# 6. Rodar a suíte de testes (34 testes)
 pytest -v
 ```
