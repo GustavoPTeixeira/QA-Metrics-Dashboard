@@ -52,21 +52,26 @@ A plataforma responde a 5 perguntas críticas:
 - [x] Taxa de Passagem de Testes (First Attempt vs Final Pass)
 - [x] Flakiness Index e Regra de Quarentena de Testes ("Hall of Shame")
 - [x] Defect Risk Score & Densidade de Defeitos por Módulo (com Matriz Heatmap)
-- [x] 100% de cobertura de testes unitários nas métricas (34 testes passando)
+- [x] 100% de cobertura de testes unitários nas métricas
 
-### Fase 3: API de Ingestão & Segurança
-- [ ] Endpoints FastAPI para ingestão de webhooks e relatórios de CI
-- [ ] Endpoints de consumo analítico para o Frontend (`/api/metrics/kpis`, `/api/metrics/heatmap`, `/api/metrics/quarantine`)
-- [ ] Chaves de Idempotência contra envios duplicados
-- [ ] Autenticação e RBAC (Viewer, Squad Lead, Admin)
+### Fase 3: API REST (FastAPI), Métricas & Ingestão Idempotente
+- [x] Endpoints analíticos para consumo do Frontend:
+  - [x] `GET /api/metrics/kpis` (Linha executiva com MTTR, Reopen, Pass Rate, Flakiness, Escape Rate)
+  - [x] `GET /api/metrics/heatmap` (Matriz Módulo x Severidade)
+  - [x] `GET /api/metrics/quarantine` (Candidatos ao Hall of Shame de testes instáveis)
+- [x] Endpoints de Ingestão de Telemetria com Idempotência Estrita:
+  - [x] `POST /api/ingest/test-run` (Ingestão de relatórios de testes de CI/CD, detecção automática de flakiness e retries)
+  - [x] `POST /api/ingest/issue` (Ingestão de bugs e tracking de transições de status)
+- [x] Segurança de Ingestão via token no header `X-API-Key`
+- [x] Tratamento de concorrência com `StaticPool` e supressão de warnings no pytest
+- [x] 100% de cobertura em testes de API e integração
 
 ### Fase 4: Dashboard UI (Frontend)
-- [ ] Layout em Next.js (React) + Tailwind CSS + Tremor/Recharts
+- [ ] Setup da aplicação Next.js (App Router, Tailwind CSS, Lucide Icons, Recharts/Tremor)
 - [ ] Linha de KPIs Executivos com tamanho de amostra `(n)`
-- [ ] Gráficos de Tendência de MTTR (14 dias) e Execução de Testes
 - [ ] Heatmap de Risco: Severidade x Módulo
-- [ ] "Hall of Shame" de Flakiness (Quarentena com 1 clique)
-- [ ] Filtros globais (Período, Módulo, Time, Severidade)
+- [ ] Tabela interativa de Quarentena ("Hall of Shame") com ação de quarentena
+- [ ] Filtro temporal dinâmico (Janela de 30, 60, 90, 120 dias)
 
 ### Fase 5: Integrações Reais & Alertas
 - [ ] Conectores para Jira e GitHub Issues
@@ -79,14 +84,31 @@ A plataforma responde a 5 perguntas críticas:
 
 ---
 
+## 🔌 Especificação da API REST
+
+A API do backend fornece contratos tipados e documentados automaticamente pelo Swagger / OpenAPI:
+
+| Método | Endpoint | Descrição | Autenticação |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/health` | Health check da API | Pública |
+| `GET` | `/api/metrics/kpis` | Métricas executivas com janela configurável (`?window_days=60`) | Pública |
+| `GET` | `/api/metrics/heatmap` | Matriz de densidade de defeitos (Módulo x Severidade) | Pública |
+| `GET` | `/api/metrics/quarantine` | Testes instáveis recomendados para quarentena (Hall of Shame) | Pública |
+| `POST` | `/api/ingest/test-run` | Ingestão idempotente de relatórios de testes de CI/CD | `X-API-Key` |
+| `POST` | `/api/ingest/issue` | Ingestão ou atualização de defeitos (webhooks de bug trackers) | `X-API-Key` |
+
+Documentação interativa disponível localmente em: `http://localhost:8000/docs`
+
+---
+
 ## 🛠️ Stack Tecnológica
 
 | Camada | Tecnologia | Propósito |
 | :--- | :--- | :--- |
-| **Backend** | Python 3.14+, FastAPI, SQLAlchemy, Pydantic | API de ingestão de alta performance e tipagem forte |
+| **Backend** | Python 3.14+, FastAPI, SQLAlchemy 2.0, Pydantic v2 | API de ingestão de alta performance e tipagem forte |
 | **Banco de Dados** | SQLite (Dev/Testes), DuckDB / PostgreSQL (Prod/Analytics) | Suporte a queries OLAP rápidas e persistência confiável |
-| **Frontend** | Next.js, React, Tailwind CSS, Tremor | Dashboard analítico executivo |
-| **Testes** | Pytest | Test-Driven Development (TDD) |
+| **Frontend** | Next.js, React, Tailwind CSS, Lucide | Dashboard analítico executivo |
+| **Testes** | Pytest, TestClient | Test-Driven Development (TDD) com Golden Dataset |
 
 ---
 
@@ -115,6 +137,9 @@ alembic upgrade head
 # 5. Popular o banco com dados do Golden Dataset
 python -m app.seeds.cli
 
-# 6. Rodar a suíte de testes (34 testes)
+# 6. Rodar a suíte completa de testes
 pytest -v
+
+# 7. Iniciar o servidor da API
+uvicorn app.main:app --reload --port 8000
 ```

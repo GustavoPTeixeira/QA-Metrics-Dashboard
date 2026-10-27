@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "qa-metrics-backend"
 version = "0.1.0"
-description = " "
+description = "QA Metrics Dashboard Backend"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi",
@@ -13,12 +13,20 @@ dependencies = [
     "alembic",
     "duckdb",
     "pydantic",
+    "uvicorn",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest"
+    "pytest",
+    "httpx",
 ]
 
 [tool.setuptools.packages.find]
 include = ["app*"]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:.*Using `httpx` with `starlette.testclient` is deprecated.*:DeprecationWarning",
+    "ignore::starlette.exceptions.StarletteDeprecationWarning",
+]
