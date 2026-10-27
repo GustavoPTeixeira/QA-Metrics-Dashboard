@@ -27,3 +27,11 @@ class FoundIn(str, Enum):
     @property
     def found_in(self)->int:
         return {FoundIn.PR: 1, FoundIn.PROD: 2}[self]
+
+class TestStatus(str, Enum):
+    __test__ = False
+
+    PASSED = "passed"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+

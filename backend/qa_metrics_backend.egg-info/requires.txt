@@ -3,6 +3,8 @@ sqlalchemy
 alembic
 duckdb
 pydantic
+uvicorn
 
 [dev]
 pytest
+httpx

@@ -1,0 +1,25 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caches e Ambientes Virtuais
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# Bancos de dados locais / OLAP
+*.duckdb
+*.sqlite3
+*.db
+
+# Node / Frontend (para quando criarmos)
+node_modules/
+.next/
+dist/
+build/
+
+# Variáveis de ambiente sensíveis
+.env
+.env.local

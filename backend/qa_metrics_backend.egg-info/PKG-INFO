@@ -8,5 +8,7 @@ Requires-Dist: sqlalchemy
 Requires-Dist: alembic
 Requires-Dist: duckdb
 Requires-Dist: pydantic
+Requires-Dist: uvicorn
 Provides-Extra: dev
 Requires-Dist: pytest; extra == "dev"
+Requires-Dist: httpx; extra == "dev"

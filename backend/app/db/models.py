@@ -1,17 +1,22 @@
+import hashlib
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.domain.enums import FoundIn, IssueStatus, Severity
+from app.domain.enums import FoundIn, IssueStatus, Severity, TestStatus
 
 def new_uuid() -> str:
     return str(uuid.uuid4())
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+def compute_scenario_id(suite_name: str, class_or_feature: str, scenario_title: str) -> str:
+    raw = f"{suite_name}|{class_or_feature}|{scenario_title}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 class Module(Base):
     __tablename__ = "modules"
@@ -48,3 +53,54 @@ class IssueTransition(Base):
     to_status: Mapped[IssueStatus] = mapped_column(Enum(IssueStatus))
     transitioned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     actor: Mapped[str] = mapped_column(String(100))
+
+class TestRun(Base):
+    __tablename__ = "test_runs"
+    __test__ = False  # Evita que o pytest ache que esta classe é um teste!
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    suite_name: Mapped[str] = mapped_column(String(200))
+    git_commit_sha: Mapped[str] = mapped_column(String(40))
+    environment: Mapped[str] = mapped_column(String(50))
+    total_count: Mapped[int] = mapped_column(Integer)
+    passed_count: Mapped[int] = mapped_column(Integer)
+    failed_count: Mapped[int] = mapped_column(Integer)
+    skipped_count: Mapped[int] = mapped_column(Integer)
+    duration_ms: Mapped[int] = mapped_column(Integer)
+    executed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        UniqueConstraint(
+            "suite_name",
+            "git_commit_sha",
+            "executed_at",
+            name="uq_test_run_idempotency",
+        ),
+    )
+
+class TestCase(Base):
+    __tablename__ = "test_cases"
+    __test__ = False  # Evita confusão no pytest
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    test_run_id: Mapped[str] = mapped_column(ForeignKey("test_runs.id"))
+    scenario_id: Mapped[str] = mapped_column(String(64), index=True)
+    scenario_title: Mapped[str] = mapped_column(String(500))
+    module_id: Mapped[str] = mapped_column(ForeignKey("modules.id"))
+    status: Mapped[TestStatus] = mapped_column(Enum(TestStatus))
+    duration_ms: Mapped[int] = mapped_column(Integer)
+    error_message: Mapped[str | None] = mapped_column(Text)
+    stack_trace: Mapped[str | None] = mapped_column(Text)
+    is_flaky: Mapped[bool] = mapped_column(Boolean, default=False)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0)
+class TestAttempt(Base):
+    __tablename__ = "test_attempts"
+    __test__ = False  # Evita confusão no pytest
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    test_case_id: Mapped[str] = mapped_column(ForeignKey("test_cases.id"))
+    attempt_no: Mapped[int] = mapped_column(Integer)
+    status: Mapped[TestStatus] = mapped_column(Enum(TestStatus))
+    duration_ms: Mapped[int] = mapped_column(Integer)
+    error_message: Mapped[str | None] = mapped_column(Text)
+class ScenarioAlias(Base):
+    __tablename__ = "scenario_aliases"
+    old_scenario_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    new_scenario_id: Mapped[str] = mapped_column(String(64), index=True)
+    renamed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
