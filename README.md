@@ -67,11 +67,12 @@ A plataforma responde a 5 perguntas críticas:
 - [x] 100% de cobertura em testes de API e integração
 
 ### Fase 4: Dashboard UI (Frontend)
-- [ ] Setup da aplicação Next.js (App Router, Tailwind CSS, Lucide Icons, Recharts/Tremor)
-- [ ] Linha de KPIs Executivos com tamanho de amostra `(n)`
-- [ ] Heatmap de Risco: Severidade x Módulo
-- [ ] Tabela interativa de Quarentena ("Hall of Shame") com ação de quarentena
-- [ ] Filtro temporal dinâmico (Janela de 30, 60, 90, 120 dias)
+- [x] Setup da aplicação Next.js (App Router, TypeScript, Tailwind CSS v4, Lucide Icons)
+- [x] Cliente HTTP tipado (`src/lib/api.ts`) com busca paralela (`Promise.all`) e verificação de saúde da API
+- [x] Linha de 6 KPIs Executivos (`KpiGrid.tsx` e `KpiCard.tsx`) com tamanho de amostra `(n)` e avaliação de SLA
+- [x] Heatmap de Risco (`RiskHeatmap.tsx`): Matriz colorimétrica Severidade × Módulo
+- [x] Tabela interativa de Quarentena ("Hall of Shame" em `QuarantineTable.tsx`) com isolamento em 1 clique
+- [x] Filtro temporal dinâmico no cabeçalho (`Header.tsx` com janelas de 30, 60, 90 e 120 dias)
 
 ### Fase 5: Integrações Reais & Alertas
 - [ ] Conectores para Jira e GitHub Issues
@@ -107,7 +108,7 @@ Documentação interativa disponível localmente em: `http://localhost:8000/docs
 | :--- | :--- | :--- |
 | **Backend** | Python 3.14+, FastAPI, SQLAlchemy 2.0, Pydantic v2 | API de ingestão de alta performance e tipagem forte |
 | **Banco de Dados** | SQLite (Dev/Testes), DuckDB / PostgreSQL (Prod/Analytics) | Suporte a queries OLAP rápidas e persistência confiável |
-| **Frontend** | Next.js, React, Tailwind CSS, Lucide | Dashboard analítico executivo |
+| **Frontend** | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, Lucide | Dashboard analítico executivo |
 | **Testes** | Pytest, TestClient | Test-Driven Development (TDD) com Golden Dataset |
 
 ---
@@ -116,13 +117,13 @@ Documentação interativa disponível localmente em: `http://localhost:8000/docs
 
 ### Pré-requisitos
 - Python 3.11+ instalado
+- Node.js 20+ e npm instalados
 - Git
 
-### Configuração do Backend
+### 1. Configuração e Execução do Backend (Terminal 1)
 ```powershell
-# 1. Clonar o repositório
-git clone <url-do-repo>
-cd QA-Metrics-Dashboard/backend
+# 1. Acessar a pasta do backend
+cd backend
 
 # 2. Criar e ativar o ambiente virtual
 python -m venv .venv
@@ -131,15 +132,26 @@ python -m venv .venv
 # 3. Instalar dependências em modo editável
 pip install -e ".[dev]"
 
-# 4. Executar as migrações do banco de dados (Alembic)
-alembic upgrade head
-
-# 5. Popular o banco com dados do Golden Dataset
+# 4. Popular o banco com dados do Golden Dataset
 python -m app.seeds.cli
 
-# 6. Rodar a suíte completa de testes
+# 5. Rodar a suíte completa de testes
 pytest -v
 
-# 7. Iniciar o servidor da API
+# 6. Iniciar o servidor da API na porta 8000
 uvicorn app.main:app --reload --port 8000
 ```
+
+### 2. Configuração e Execução do Frontend (Terminal 2)
+```powershell
+# 1. Acessar a pasta do frontend
+cd frontend
+
+# 2. Instalar dependências
+npm install
+
+# 3. Iniciar o servidor de desenvolvimento na porta 3000
+npm run dev
+```
+
+Acesse o dashboard em: `http://localhost:3000`
