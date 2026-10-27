@@ -83,7 +83,8 @@ def seed_defects(session: Session, modules: dict[str, Module], base_date: dateti
             transitioned_at=resolved_at,
             actor="engineer_bob",
         )
-
+        session.add_all([t1, t2])
+        
         if i in (1, 2):
             reopened_at = resolved_at + timedelta(days=2)
             t3 = IssueTransition(

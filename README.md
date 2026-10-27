@@ -45,12 +45,13 @@ A plataforma responde a 5 perguntas críticas:
   - [x] Testes unitários do gerador contra o gabarito com 100% de sucesso (`test_seeds.py`)
 
 ### Fase 2: Motor de Métricas & Lógica de Negócio (TDD)
-- [ ] Cálculo de MTTR (Primeira Resolução vs Lead Time Total) e Idade de Defeitos Abertos (P50/P90)
-- [ ] Reopen Rate baseado em coortes (`IssueTransition`)
-- [ ] Taxa de Passagem (First Attempt vs Final Pass)
-- [ ] Flakiness Index e Regra de Quarentena de Testes
+- [x] Cálculo de MTTR (Primeira Resolução vs Lead Time Total) e Violações de SLA por Severidade
+- [x] Idade de Defeitos em Aberto (P50/P90) com enforçamento de UTC
+- [x] Reopen Rate baseado em coortes (`IssueTransition`) com denominação preservada
+- [x] Escape Rate (Defeitos encontrados em produção)
+- [ ] Taxa de Passagem de Testes (First Attempt vs Final Pass)
+- [ ] Flakiness Index e Regra de Quarentena de Testes ("Hall of Shame")
 - [ ] Defect Risk Score & Densidade de Defeitos por Módulo
-- [ ] Escape Rate & Tendência de Backlog
 - [ ] 100% de cobertura de testes unitários nas métricas
 
 ### Fase 3: API de Ingestão & Segurança
@@ -113,6 +114,6 @@ alembic upgrade head
 # 5. Popular o banco com dados do Golden Dataset
 python -m app.seeds.cli
 
-# 6. Rodar a suíte de testes (26 testes)
+# 6. Rodar a suíte de testes (30 testes)
 pytest -v
 ```
