@@ -246,3 +246,14 @@ def calculate_open_defect_age(
         p50_age_days=p50,
         p90_age_days=p90,
     )
+
+def count_open_s1_production_defects(session: Session) -> int:
+    return (
+        session.query(Issue)
+        .filter(
+            Issue.severity == Severity.CRITICAL,
+            Issue.found_in == FoundIn.PROD,
+            Issue.status.in_([IssueStatus.OPEN, IssueStatus.IN_PROGRESS]),
+        )
+        .count()
+    )
