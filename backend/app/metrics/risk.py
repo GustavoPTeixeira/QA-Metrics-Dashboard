@@ -5,6 +5,12 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Issue, Module, TestCase
 from app.domain.enums import Severity
+from app.metrics.defects import (
+    calculate_escape_rate,
+    calculate_mttr_and_sla,
+    count_open_s1_production_defects,
+)
+from app.metrics.tests import calculate_test_pass_and_flaky_rates
 
 
 @dataclass(frozen=True)
@@ -29,6 +35,22 @@ class HeatmapResult:
     modules: list[str]
     severities: list[str]
     matrix: dict[str, dict[str, int]]  # module_name -> {severity_name: count}
+
+@dataclass(frozen=True)
+class ReleaseGateCheck:
+    id: str
+    label: str
+    passed: bool
+    severity: str
+    actual: str
+    threshold: str
+
+@dataclass(frozen=True)
+class ReleaseGateResult:
+    status: str
+    readiness_score: int
+    summary: str
+    checks: list[ReleaseGateCheck]
 
 
 def _to_utc(dt: datetime) -> datetime:
@@ -137,4 +159,99 @@ def calculate_severity_module_heatmap(
         modules=module_names,
         severities=severity_names,
         matrix=matrix,
+    )
+
+def evaluate_release_gate(
+    session: Session,
+    window_days: int = 60,
+    as_of: datetime | None = None,
+) -> ReleaseGateResult:
+    open_s1_prod = count_open_s1_production_defects(session)
+    mttr = calculate_mttr_and_sla(session, window_days=window_days, as_of=as_of)
+    total_sla_breaches = (
+        mttr.sla_breaches.get(Severity.CRITICAL, 0)
+        + mttr.sla_breaches.get(Severity.HIGH, 0)
+    )
+    test_rates = calculate_test_pass_and_flaky_rates(
+        session, window_days=window_days, as_of=as_of
+    )
+    escape = calculate_escape_rate(session, window_days=window_days, as_of=as_of)
+    effective_pass_rate = (
+        test_rates.final_pass_rate if test_rates.total_executed > 0 else 100.0
+    )
+    c1_passed = open_s1_prod == 0
+    c2_passed = total_sla_breaches == 0
+    c3_passed = effective_pass_rate >= 98.0
+    c4_passed = test_rates.flaky_rate <= 5.0
+    c5_passed = escape.escape_rate <= 15.0
+    penalty = 0
+    if not c1_passed:
+        penalty += 40
+    if not c2_passed:
+        penalty += 30
+    if not c3_passed:
+        penalty += 30
+    if not c4_passed:
+        penalty += 10
+    if not c5_passed:
+        penalty += 10
+    readiness_score = max(0, 100 - penalty)
+    checks = [
+        ReleaseGateCheck(
+            id="open_s1_prod",
+            label="Open Critical Prod Defects",
+            passed=c1_passed,
+            severity="BLOCKER",
+            actual=str(open_s1_prod),
+            threshold="0",
+        ),
+        ReleaseGateCheck(
+            id="sla_breaches",
+            label="Active SLA Breaches",
+            passed=c2_passed,
+            severity="BLOCKER",
+            actual=str(total_sla_breaches),
+            threshold="0",
+        ),
+        ReleaseGateCheck(
+            id="final_pass_rate",
+            label="Final Suite Pass Rate",
+            passed=c3_passed,
+            severity="BLOCKER",
+            actual=f"{effective_pass_rate}%",
+            threshold=">= 98.0%",
+        ),
+        ReleaseGateCheck(
+            id="flakiness_rate",
+            label="Suite Flakiness Rate",
+            passed=c4_passed,
+            severity="WARNING",
+            actual=f"{test_rates.flaky_rate}%",
+            threshold="<= 5.0%",
+        ),
+        ReleaseGateCheck(
+            id="escape_rate",
+            label="Production Escape Rate",
+            passed=c5_passed,
+            severity="WARNING",
+            actual=f"{escape.escape_rate}%",
+            threshold="<= 15.0%",
+        ),
+    ]
+    failed_blockers = [c for c in checks if c.severity == "BLOCKER" and not c.passed]
+    failed_warnings = [c for c in checks if c.severity == "WARNING" and not c.passed]
+    if failed_blockers:
+        status = "BLOCKED"
+        summary = f"Release blocked by {len(failed_blockers)} failing quality gate condition(s)."
+    elif failed_warnings:
+        status = "WARNING"
+        summary = f"Deploy with caution: {len(failed_warnings)} warning condition(s) exceeded threshold."
+    else:
+        status = "READY"
+        summary = "All quality gate conditions passed. Safe to deploy to production."
+    return ReleaseGateResult(
+        status=status,
+        readiness_score=readiness_score,
+        summary=summary,
+        checks=checks,
     )
